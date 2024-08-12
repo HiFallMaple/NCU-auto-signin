@@ -1,4 +1,5 @@
 from typing import TypedDict
+import pyotp
 
 
 class Cookie(TypedDict):
@@ -14,3 +15,4 @@ class Cookie(TypedDict):
 class Account(TypedDict):
     username: str
     password: str
+    totp: pyotp.totp.TOTP
