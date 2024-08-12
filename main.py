@@ -1,7 +1,7 @@
-from ast import Tuple
 import re
 import sys
-import time
+import requests
+import traceback
 import playwright
 import logging
 from config import *
@@ -53,9 +53,8 @@ class NCU:
         Returns:
             self: NCU object
         """
-        chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
         self.p = sync_playwright().start()
-        self.browser = self.p.chromium.launch(executable_path=chrome_path, headless=self.headless)
+        self.browser = self.p.chromium.launch(headless=self.headless)
         self.context = self.browser.new_context()
         self.context.add_cookies(self.init_cookies)
         self.page = self.context.new_page()
@@ -192,16 +191,26 @@ class NCU:
   
 
 if __name__ == "__main__":
+    webhook_message = {'content': None}
     if len(sys.argv) != 2:
         print("Usage: python main.py <action>")
         sys.exit(1)
     if sys.argv[1] not in ["signin", "signout"]:
         print("Invalid action")
         sys.exit(1)
-    with NCU(account, headless=False) as ncu:
-        if sys.argv[1] == "signin":
-            ncu.is_login()            
-            ncu.signin_HumanSys()
-        elif sys.argv[1] == "signout":
-            ncu.is_login()
-            ncu.signout_HumanSys()
+    try:
+        with NCU(account, headless=False) as ncu:
+            if sys.argv[1] == "signin":
+                ncu.is_login()            
+                ncu.signin_HumanSys()
+            elif sys.argv[1] == "signout":
+                ncu.is_login()
+                ncu.signout_HumanSys()
+        webhook_message['content'] = f"Successfully {sys.argv[1]}"
+    except Exception as e:
+        error_message = traceback.format_exc()  # 獲取異常追蹤訊息並轉換為字符串
+        logger.error(error_message)
+        webhook_message['content'] = f"Failed to {sys.argv[1]}\n```python\n{error_message}\n```"
+    
+    if DC_WEBHOOK:
+        requests.post(DC_WEBHOOK, json=webhook_message)
